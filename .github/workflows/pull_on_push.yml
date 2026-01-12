@@ -17,6 +17,6 @@ jobs:
           port: ${{ secrets.MAC_PORT }}
           script: |
             set -e
-            cd ~/apps/myapp
+            cd ~/develop/idea-lab/idea-lab
             git fetch --all
             git reset --hard origin/main
