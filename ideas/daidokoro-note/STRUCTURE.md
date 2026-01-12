@@ -1,6 +1,7 @@
 # 台所ノート ファイル構成
 更新テスト
 
+
 ## 概要
 
 - **フロントエンド**: Next.js 16 (TypeScript + Tailwind CSS)
