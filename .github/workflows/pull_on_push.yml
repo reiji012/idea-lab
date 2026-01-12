@@ -1,22 +1,16 @@
-name: Pull on push (Mac mini)
-
-on:
-  push:
-    branches: [ "main" ]  # 対象ブランチを合わせる
-
-jobs:
-  pull:
-    runs-on: ubuntu-latest
-    steps:
-      - name: SSH and git pull
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.MAC_HOST }}
-          username: ${{ secrets.MAC_USER }}
-          key: ${{ secrets.MAC_SSH_KEY }}
-          port: ${{ secrets.MAC_PORT }}
-          script: |
-            set -e
-            cd ~/develop/idea-lab/idea-lab
-            git fetch --all
-            git reset --hard origin/main
+- name: SSH and git pull (debug)
+  uses: appleboy/ssh-action@v1.0.3
+  with:
+    host: ${{ secrets.MAC_HOST }}
+    username: ${{ secrets.MAC_USER }}
+    key: ${{ secrets.MAC_SSH_KEY }}
+    port: ${{ secrets.MAC_PORT }}
+    debug: true
+    timeout: 60s
+    command_timeout: 10m
+    script: |
+      whoami
+      hostname
+      cd ~/develop/idea-lab/idea-lab
+      git fetch --all
+      git reset --hard origin/main
