@@ -1,33 +1,36 @@
 ---
-description: Create a new app idea project
+description: 新しいアプリアイデアプロジェクトを作成する
 ---
 
-# Create New Idea Workflow
+# 新しいアイデア作成ワークフロー
 
-This workflow guides the creation of a new app idea in the `ideas/` directory.
+このワークフローは、`ideas/` ディレクトリに新しいアプリアイデアを作成する手順を示します。
 
-1.  **Ask for Details**:
-    - Ask the user for the **name of the idea** (short, English, kebab-case preferred).
-    - Ask for a **brief description** of the idea.
-    - Ask for the **technology preference** (e.g., Simple HTML/JS, Next.js, etc.).
+1.  **詳細を確認**:
+    - ユーザーに**アイデア名**を尋ねる（短く、英数字、kebab-case推奨）
+    - **アイデアの概要**を尋ねる
+    - **使用する技術**を尋ねる（例: シンプルなHTML/JS、Next.js、Flutterなど）
 
-2.  **Create Directory**:
-    - Create a new directory: `ideas/<idea-name>`.
+2.  **ディレクトリ作成**:
+    - 新しいディレクトリを作成: `ideas/<idea-name>`
 
-3.  **Initialize Project**:
-    - If the user chose **Simple HTML/JS**:
-        - Create `index.html`, `style.css`, and `script.js` in `ideas/<idea-name>/`.
-        - Add basic boilerplate code.
-    - If the user chose a **Framework** (e.g., Next.js, Vite):
-        - Run the appropriate initialization command inside `ideas/`.
-        - *Note: Ensure you are in the correct directory.*
+3.  **プロジェクト初期化**:
+    - ユーザーが**シンプルなHTML/JS**を選択した場合:
+        - `ideas/<idea-name>/` に `index.html`、`style.css`、`script.js` を作成
+        - 基本的なボイラープレートコードを追加
+    - ユーザーが**フレームワーク**を選択した場合（例: Next.js、Vite、Flutter）:
+        - `ideas/` 内で適切な初期化コマンドを実行
+        - *注意: 正しいディレクトリにいることを確認すること*
 
-4.  **Create Documentation**:
-    - Create `ideas/<idea-name>/README.md`.
-    - Content should include:
-        - `# <Idea Name>`
-        - Description.
-        - How to run the project.
+4.  **ドキュメント作成**:
+    - `ideas/<idea-name>/README.md` を作成
+    - 以下の内容を含める:
+        - `# <アイデア名>`
+        - 概要
+        - 機能リスト
+        - 技術スタック
+        - 実行方法（必要に応じて）
 
-5.  **Notify User**:
-    - Inform the user that the idea project has been set up and is ready for development.
+5.  **ユーザーに通知**:
+    - アイデアプロジェクトがセットアップされ、開発準備が整ったことをユーザーに通知する
+
