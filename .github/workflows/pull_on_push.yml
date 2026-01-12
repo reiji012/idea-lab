@@ -9,20 +9,26 @@ jobs:
   pull:
     runs-on: ubuntu-latest
     steps:
-      - name: SSH and git pull (debug)
-        uses: appleboy/ssh-action@v1.0.3
+      - name: Check TCP connectivity to SSH
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y netcat-openbsd
+          echo "Checking ${{ secrets.MAC_HOST }}:${{ secrets.MAC_PORT }}"
+          nc -vz -w 5 ${{ secrets.MAC_HOST }} ${{ secrets.MAC_PORT }}
+
+      - name: Start ssh-agent
+        uses: webfactory/ssh-agent@v0.9.0
         with:
-          host: ${{ secrets.MAC_HOST }}
-          username: ${{ secrets.MAC_USER }}
-          key: ${{ secrets.MAC_SSH_KEY }}
-          port: ${{ secrets.MAC_PORT }}
-          debug: true
-          timeout: 60s
-          command_timeout: 10m
-          script: |
-            set -e
-            whoami
-            hostname
-            cd ~/develop/idea-lab/idea-lab
-            git fetch --all
-            git reset --hard origin/main
+          ssh-private-key: ${{ secrets.MAC_SSH_KEY }}
+
+      - name: SSH (verbose) and git pull
+        run: |
+          set -e
+          ssh -vvv \
+            -o ConnectTimeout=10 \
+            -o ServerAliveInterval=5 \
+            -o ServerAliveCountMax=2 \
+            -o StrictHostKeyChecking=no \
+            -p ${{ secrets.MAC_PORT }} \
+            ${{ secrets.MAC_USER }}@${{ secrets.MAC_HOST }} \
+            'set -e; whoami; hostname; cd ~/develop/idea-lab/idea-lab; git fetch --all; git reset --hard origin/main;'
