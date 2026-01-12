@@ -1,9 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Recipe, RecipeCategory, RecipeSource, CATEGORY_LABELS } from '@/types';
 import { Button } from './Button';
 import { ImageUpload } from './ImageUpload';
+import {
+  extractRecipeFromImage,
+  formatIngredientsForForm,
+  formatStepsForForm,
+} from '@/lib/ocr-api';
 
 type RecipeFormData = Omit<Recipe, 'id' | 'createdAt' | 'cookedCount'>;
 
@@ -37,6 +42,66 @@ export function RecipeForm({
     initialData?.category || 'other'
   );
   const [sourceUrl, setSourceUrl] = useState(initialData?.sourceUrl || '');
+
+  // OCR関連のstate
+  const [isOcrLoading, setIsOcrLoading] = useState(false);
+  const [ocrError, setOcrError] = useState<string | null>(null);
+  const ocrFileInputRef = useRef<HTMLInputElement>(null);
+
+  // OCRで画像からレシピを取り込む
+  const handleOcrImport = async (file: File) => {
+    setIsOcrLoading(true);
+    setOcrError(null);
+
+    try {
+      const result = await extractRecipeFromImage(file, {
+        sourceUrl: sourceUrl || undefined,
+        titleHint: title || undefined,
+      });
+
+      // 構造化データがあればフォームに反映
+      if (result.structured_recipe) {
+        const recipe = result.structured_recipe;
+
+        if (recipe.title && !title) {
+          setTitle(recipe.title);
+        }
+
+        if (recipe.ingredients.length > 0) {
+          const formatted = formatIngredientsForForm(recipe.ingredients);
+          setIngredientsText((prev) => prev ? `${prev}\n${formatted}` : formatted);
+        }
+
+        if (recipe.steps.length > 0) {
+          const formatted = formatStepsForForm(recipe.steps);
+          setStepsText((prev) => prev ? `${prev}\n${formatted}` : formatted);
+        }
+      } else if (result.raw_ocr_text) {
+        // 構造化できなかった場合は生テキストを材料欄に追加
+        setIngredientsText((prev) =>
+          prev ? `${prev}\n\n--- OCR結果 ---\n${result.raw_ocr_text}` : result.raw_ocr_text
+        );
+      }
+
+      // 警告があれば表示
+      if (result.warnings.length > 0) {
+        setOcrError(`注意: ${result.warnings.join(', ')}`);
+      }
+    } catch (error) {
+      setOcrError(error instanceof Error ? error.message : 'OCRに失敗しました');
+    } finally {
+      setIsOcrLoading(false);
+    }
+  };
+
+  const handleOcrFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      handleOcrImport(file);
+    }
+    // 同じファイルを再選択できるようにリセット
+    e.target.value = '';
+  };
 
   const handleMethodSelect = (selectedMethod: RegistrationMethod) => {
     setMethod(selectedMethod);
@@ -127,7 +192,7 @@ export function RecipeForm({
       {method === 'book' && (
         <div className="p-3 bg-accent rounded-lg">
           <p className="text-sm text-muted">
-            ※ 現在は画像認識機能は準備中です。書籍の画像をアップロードし、材料・作り方を手動で入力してください。
+            書籍の画像をアップロードし、材料欄の「画像から取り込む」ボタンでOCR読み取りができます。
           </p>
         </div>
       )}
@@ -167,9 +232,33 @@ export function RecipeForm({
       </div>
 
       <div>
-        <label className="block text-sm font-medium mb-1">
-          材料 <span className="text-red-500">*</span>
-        </label>
+        <div className="flex items-center justify-between mb-1">
+          <label className="block text-sm font-medium">
+            材料 <span className="text-red-500">*</span>
+          </label>
+          <div>
+            <input
+              type="file"
+              ref={ocrFileInputRef}
+              onChange={handleOcrFileSelect}
+              accept="image/jpeg,image/png,image/gif,image/webp,image/bmp"
+              className="hidden"
+            />
+            <button
+              type="button"
+              onClick={() => ocrFileInputRef.current?.click()}
+              disabled={isOcrLoading}
+              className="text-xs px-2 py-1 bg-secondary text-secondary-foreground rounded hover:bg-secondary/80 transition-colors disabled:opacity-50"
+            >
+              {isOcrLoading ? '読み取り中...' : '画像から取り込む'}
+            </button>
+          </div>
+        </div>
+        {ocrError && (
+          <div className="mb-2 p-2 text-xs bg-red-50 text-red-600 rounded border border-red-200">
+            {ocrError}
+          </div>
+        )}
         <textarea
           value={ingredientsText}
           onChange={(e) => setIngredientsText(e.target.value)}

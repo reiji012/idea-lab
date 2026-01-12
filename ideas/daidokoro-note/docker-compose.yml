@@ -1,0 +1,31 @@
+services:
+  # フロントエンド (Next.js)
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    ports:
+      - "3002:3000"
+    environment:
+      - NEXT_PUBLIC_OCR_API_URL=http://localhost:8000
+    depends_on:
+      - ocr-backend
+
+  # OCRバックエンド (FastAPI + PaddleOCR)
+  ocr-backend:
+    build:
+      context: ./ocr-backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - API_TOKEN=${API_TOKEN:-dev-token}
+      - OLLAMA_BASE_URL=http://host.docker.internal:11434
+      - OLLAMA_MODEL=${OLLAMA_MODEL:-llama3.2}
+    volumes:
+      - ocr-data:/app/data
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+volumes:
+  ocr-data:
