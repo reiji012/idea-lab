@@ -98,11 +98,11 @@ export default function RecipeDetailPage() {
       {/* 画像 */}
       {recipe.images.length > 0 && (
         <div className="relative">
-          <div className="aspect-video bg-accent">
+          <div className="relative bg-accent">
             <img
               src={recipe.images[currentImageIndex]}
               alt={recipe.title}
-              className="w-full h-full object-cover"
+              className="w-full h-auto object-contain"
             />
           </div>
           {recipe.images.length > 1 && (
@@ -128,9 +128,8 @@ export default function RecipeDetailPage() {
                   <button
                     key={i}
                     onClick={() => setCurrentImageIndex(i)}
-                    className={`w-2 h-2 rounded-full transition-colors ${
-                      i === currentImageIndex ? 'bg-white' : 'bg-white/50'
-                    }`}
+                    className={`w-2 h-2 rounded-full transition-colors ${i === currentImageIndex ? 'bg-white' : 'bg-white/50'
+                      }`}
                   />
                 ))}
               </div>

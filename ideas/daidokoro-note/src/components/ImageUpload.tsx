@@ -46,7 +46,7 @@ export function ImageUpload({ images, onChange, maxImages = 4 }: ImageUploadProp
             <img
               src={image}
               alt={`画像 ${index + 1}`}
-              className="w-full h-full object-cover rounded-lg"
+              className="w-full h-full object-contain bg-black/10 rounded-lg"
             />
             <button
               type="button"

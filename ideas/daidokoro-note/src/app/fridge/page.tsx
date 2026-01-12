@@ -53,10 +53,7 @@ export default function FridgePage() {
     setRecommendedRecipes(getRecommendedRecipes());
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return `${date.getMonth() + 1}/${date.getDate()}`;
-  };
+
 
   return (
     <div>
@@ -106,9 +103,7 @@ export default function FridgePage() {
                   className="flex items-center gap-1 px-3 py-1.5 bg-accent rounded-full group"
                 >
                   <span className="text-sm">{ingredient.name}</span>
-                  <span className="text-xs text-muted">
-                    ({formatDate(ingredient.addedAt)})
-                  </span>
+
                   <button
                     onClick={() => handleDeleteIngredient(ingredient.id)}
                     className="ml-1 p-0.5 text-muted hover:text-red-500 transition-colors"
