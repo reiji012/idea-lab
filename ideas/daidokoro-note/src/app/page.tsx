@@ -61,7 +61,7 @@ export default function HomePage() {
   return (
     <div>
       <Header
-        title="レシピ"
+        title="レシピ PLUS"
         rightAction={
           <Button size="sm" onClick={() => setIsModalOpen(true)}>
             新規登録
@@ -99,22 +99,20 @@ export default function HomePage() {
           {hasFridgeItems && (
             <button
               onClick={() => setSelectedCategory('recommended')}
-              className={`px-3 py-1.5 rounded-full text-sm whitespace-nowrap transition-colors ${
-                selectedCategory === 'recommended'
+              className={`px-3 py-1.5 rounded-full text-sm whitespace-nowrap transition-colors ${selectedCategory === 'recommended'
                   ? 'bg-primary text-white'
                   : 'bg-accent text-secondary hover:bg-border'
-              }`}
+                }`}
             >
               おすすめ
             </button>
           )}
           <button
             onClick={() => setSelectedCategory('all')}
-            className={`px-3 py-1.5 rounded-full text-sm whitespace-nowrap transition-colors ${
-              selectedCategory === 'all'
+            className={`px-3 py-1.5 rounded-full text-sm whitespace-nowrap transition-colors ${selectedCategory === 'all'
                 ? 'bg-primary text-white'
                 : 'bg-accent text-secondary hover:bg-border'
-            }`}
+              }`}
           >
             すべて
           </button>
@@ -122,11 +120,10 @@ export default function HomePage() {
             <button
               key={key}
               onClick={() => setSelectedCategory(key as RecipeCategory)}
-              className={`px-3 py-1.5 rounded-full text-sm whitespace-nowrap transition-colors ${
-                selectedCategory === key
+              className={`px-3 py-1.5 rounded-full text-sm whitespace-nowrap transition-colors ${selectedCategory === key
                   ? 'bg-primary text-white'
                   : 'bg-accent text-secondary hover:bg-border'
-              }`}
+                }`}
             >
               {label}
             </button>
