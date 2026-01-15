@@ -23,4 +23,4 @@ jobs:
           cd $env:USERPROFILE\develop\idea-lab
           git fetch --all
           git reset --hard origin/main
-        shell: pwsh
+        shell: powershell
