@@ -1,16 +1,25 @@
-  name: Pull on push (Mac mini)
+name: Pull on push
 
-  on:
-    push:
-      branches:
-        - main
+on:
+  push:
+    branches:
+      - main
 
-  jobs:
-    pull:
-      runs-on: self-hosted
-      steps:
-        - name: Git pull
-          run: |
-            cd ~/develop/idea-lab/idea-lab
-            git fetch --all
-            git reset --hard origin/main
+jobs:
+  pull-mac:
+    runs-on: [self-hosted, macOS]
+    steps:
+      - name: Git pull
+        run: |
+          cd ~/develop/idea-lab/idea-lab
+          git fetch --all
+          git reset --hard origin/main
+
+  pull-windows:
+    runs-on: [self-hosted, Linux]  # WSL2はLinuxとして認識される
+    steps:
+      - name: Git pull
+        run: |
+          cd ~/develop/idea-lab/idea-lab
+          git fetch --all
+          git reset --hard origin/main

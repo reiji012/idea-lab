@@ -2,7 +2,10 @@ fastapi==0.115.0
 uvicorn[standard]==0.32.0
 python-multipart==0.0.12
 paddleocr==2.9.1
-paddlepaddle==3.0.0b1
+# GPU版: paddlepaddle-gpu==3.0.0b1 (CUDA 11.8/12.x対応)
+# CPU版: paddlepaddle==3.0.0b1
+# 環境に応じてコメントを切り替えてください
+paddlepaddle-gpu==3.0.0b1
 pillow==11.0.0
 python-dotenv==1.0.1
 httpx==0.28.0

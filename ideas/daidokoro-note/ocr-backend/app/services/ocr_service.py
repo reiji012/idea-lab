@@ -3,7 +3,7 @@ from PIL import Image
 from paddleocr import PaddleOCR
 from typing import Optional
 
-from app.config import OCR_LANG
+from app.config import OCR_LANG, OCR_USE_GPU
 
 # グローバルOCRインスタンス（起動時にロード）
 _ocr_instance: Optional[PaddleOCR] = None
@@ -17,6 +17,7 @@ def init_ocr():
             use_angle_cls=True,
             lang=OCR_LANG,
             show_log=False,
+            use_gpu=OCR_USE_GPU,
         )
     return _ocr_instance
 

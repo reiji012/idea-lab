@@ -2,7 +2,7 @@ import json
 import httpx
 from typing import Optional
 
-from app.config import OLLAMA_BASE_URL, OLLAMA_MODEL
+from app.config import OLLAMA_BASE_URL, OLLAMA_MODEL, LLM_TIMEOUT
 
 # JSON出力スキーマのプロンプト
 SYSTEM_PROMPT = """あなたは料理レシピを構造化するアシスタントです。
@@ -70,7 +70,7 @@ async def structure_recipe(
         user_content += f"\n\nタイトルヒント: {title_hint}"
 
     try:
-        async with httpx.AsyncClient(timeout=60.0) as client:
+        async with httpx.AsyncClient(timeout=float(LLM_TIMEOUT)) as client:
             response = await client.post(
                 f"{OLLAMA_BASE_URL}/api/generate",
                 json={

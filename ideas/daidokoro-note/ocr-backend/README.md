@@ -110,4 +110,77 @@ Authorization: Bearer <token>
 | MAX_UPLOAD_MB | 最大アップロードサイズ | 10 |
 | OLLAMA_BASE_URL | OllamaのURL | http://localhost:11434 |
 | OLLAMA_MODEL | 使用するモデル | llama3.2 |
+| LLM_TIMEOUT | LLMタイムアウト(秒) | 120 |
 | OCR_LANG | OCR言語 | japan |
+| OCR_USE_GPU | OCRでGPUを使用 | true |
+
+## GPU環境でのセットアップ (RTX 5080等)
+
+GPU搭載PCでOCR/LLMの性能を向上させるための設定。
+
+### 1. NVIDIA CUDAのインストール
+
+```bash
+# CUDA 12.x をインストール
+# https://developer.nvidia.com/cuda-downloads
+```
+
+### 2. PaddlePaddle GPU版のインストール
+
+```bash
+# requirements.txt は paddlepaddle-gpu を使用するよう変更済み
+pip install -r requirements.txt
+
+# インストール確認
+python -c "import paddle; print(paddle.device.is_compiled_with_cuda())"
+# True が出力されればOK
+```
+
+### 3. 高性能LLMモデルの準備
+
+RTX 5080 (16GB VRAM) での推奨モデル:
+
+```bash
+# 日本語に強い推奨モデル (32B)
+ollama pull qwen2.5:32b
+
+# または バランス型 (27B)
+ollama pull gemma2:27b
+
+# または 大規模モデル (70B, 4bit量子化)
+ollama pull llama3.1:70b
+```
+
+### 4. 環境変数の設定
+
+`.env` ファイルに以下を追加:
+
+```bash
+# GPU有効化
+OCR_USE_GPU=true
+
+# 大モデル用に推奨設定
+OLLAMA_MODEL=qwen2.5:32b
+LLM_TIMEOUT=180
+
+# 外部からアクセスする場合
+OLLAMA_BASE_URL=http://0.0.0.0:11434
+```
+
+### 5. Ollamaの起動 (外部アクセス許可)
+
+```bash
+# 他のPCからアクセスする場合
+OLLAMA_HOST=0.0.0.0 ollama serve
+```
+
+### モデル比較
+
+| モデル | VRAM使用量 | 日本語 | 速度 |
+|--------|-----------|--------|------|
+| llama3.2 (7B) | ~5GB | 普通 | 速い |
+| qwen2.5:32b | ~18GB | 優秀 | 中程度 |
+| gemma2:27b | ~16GB | 良い | 中程度 |
+| llama3.1:70b | ~40GB (4bit) | 良い | 遅い |
+
+RTX 5080 16GBでは `qwen2.5:32b` が最もバランスが良い。
