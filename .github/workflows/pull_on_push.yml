@@ -16,10 +16,13 @@ jobs:
           git reset --hard origin/main
 
   pull-windows:
-    runs-on: [self-hosted, Linux]  # WSL2はLinuxとして認識される
+    runs-on: [self-hosted, Windows]
+    defaults:
+      run:
+        shell: bash  # Git Bash使用
     steps:
       - name: Git pull
         run: |
-          cd ~/develop/idea-lab/idea-lab
+          cd "$USERPROFILE/develop/idea-lab/idea-lab"
           git fetch --all
           git reset --hard origin/main
