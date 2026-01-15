@@ -1,20 +1,33 @@
 # syntax=docker/dockerfile:1
 
-FROM python:3.11-slim
+# CUDA 12.4 + cuDNN + Python 3.11 ベースイメージ (GPU対応)
+FROM nvidia/cuda:12.4.1-cudnn-runtime-ubuntu22.04
 
 WORKDIR /app
 
-# システム依存パッケージ（PaddleOCR用）
+# Python 3.11 + システム依存パッケージ
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3.11 \
+    python3.11-venv \
+    python3-pip \
     libgl1 \
     libglib2.0-0 \
     libsm6 \
     libxext6 \
     libxrender1 \
     libgomp1 \
-    && rm -rf /var/lib/apt/lists/*
+    curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && ln -sf /usr/bin/python3.11 /usr/bin/python \
+    && ln -sf /usr/bin/python3.11 /usr/bin/python3
 
-# Pythonパッケージインストール
+# pip アップグレード
+RUN python -m pip install --upgrade pip
+
+# PaddlePaddle GPU版を公式リポジトリからインストール (CUDA 12.x用)
+RUN pip install --no-cache-dir paddlepaddle-gpu==3.0.0b1 -i https://www.paddlepaddle.org.cn/packages/stable/cu123/
+
+# その他のPythonパッケージインストール
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 

@@ -2,10 +2,8 @@ fastapi==0.115.0
 uvicorn[standard]==0.32.0
 python-multipart==0.0.12
 paddleocr==2.9.1
-# GPU版: paddlepaddle-gpu==3.0.0b1 (CUDA 11.8/12.x対応)
-# CPU版: paddlepaddle==3.0.0b1
-# 環境に応じてコメントを切り替えてください
-paddlepaddle-gpu==3.0.0b1
+# paddlepaddle-gpu: Dockerfileで公式リポジトリからインストール
+# ローカル開発時は手動で: pip install paddlepaddle-gpu==3.0.0b1 -i https://www.paddlepaddle.org.cn/packages/stable/cu123/
 pillow==11.0.0
 python-dotenv==1.0.1
 httpx==0.28.0
