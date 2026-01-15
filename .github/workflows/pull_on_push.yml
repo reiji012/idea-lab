@@ -20,7 +20,7 @@ jobs:
     steps:
       - name: Git pull
         run: |
-          cd $env:USERPROFILE\develop\idea-lab
+          cd %USERPROFILE%\develop\idea-lab
           git fetch --all
           git reset --hard origin/main
-        shell: powershell
+        shell: cmd
