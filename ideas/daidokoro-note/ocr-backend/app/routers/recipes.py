@@ -1,9 +1,13 @@
 import asyncio
+import logging
 from fastapi import APIRouter, File, Form, UploadFile, HTTPException, Depends
 from typing import Optional
 import ulid
 
 from app.config import MAX_UPLOAD_BYTES, ALLOWED_EXTENSIONS, ALLOWED_MIMETYPES, OLLAMA_MODEL
+
+logger = logging.getLogger(__name__)
+
 from app.models.schemas import IngestResponse, RecipeResponse, StructuredRecipe
 from app.models.database import save_recipe, get_recipe
 from app.services.image_processor import process_image, save_image
@@ -28,6 +32,7 @@ async def ingest_recipe(
     """
     画像を受け取り、OCR→構造化→保存まで実行し、結果を返す
     """
+    logger.info(f"=== Ingest request: filename={image.filename}, content_type={image.content_type} ===")
     warnings = []
 
     # ファイル検証
@@ -57,6 +62,7 @@ async def ingest_recipe(
     async with _semaphore:
         # レシピID生成
         recipe_id = str(ulid.new())
+        logger.info(f"Processing recipe: id={recipe_id}, size={len(contents)} bytes")
 
         # 画像前処理
         try:
@@ -68,28 +74,37 @@ async def ingest_recipe(
         image_path = save_image(processed_image, recipe_id)
 
         # OCR実行
+        logger.info("Step 2: Running OCR...")
         try:
             raw_text, ocr_blocks, confidence = run_ocr(processed_image)
         except Exception as e:
+            logger.exception(f"OCR failed: {str(e)}")
             warnings.append(f"OCR_ERROR: {str(e)}")
             raw_text = ""
             ocr_blocks = []
             confidence = 0.0
 
         if not raw_text:
+            logger.warning("OCR returned empty text")
             warnings.append("OCR_TEXT_EMPTY")
 
         # LLM構造化
         structured_dict = None
         if raw_text:
+            logger.info("Step 3: Running LLM structuring...")
             structured_dict, llm_warnings = await structure_recipe(
                 raw_text,
                 source_url=source_url,
                 title_hint=title_hint,
             )
             warnings.extend(llm_warnings)
+            if structured_dict:
+                logger.info(f"LLM structuring successful: title={structured_dict.get('title')}")
+            else:
+                logger.warning(f"LLM structuring failed: warnings={llm_warnings}")
 
         # DB保存
+        logger.info("Step 4: Saving to database...")
         save_recipe(
             recipe_id=recipe_id,
             image_path=image_path,
@@ -110,6 +125,7 @@ async def ingest_recipe(
             except Exception:
                 warnings.append("SCHEMA_VALIDATION_FAILED")
 
+        logger.info(f"=== Ingest complete: recipe_id={recipe_id}, warnings={warnings} ===")
         return IngestResponse(
             recipe_id=recipe_id,
             raw_ocr_text=raw_text,

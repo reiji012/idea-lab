@@ -1,9 +1,12 @@
+import logging
 import numpy as np
 from PIL import Image
 from paddleocr import PaddleOCR
 from typing import Optional
 
 from app.config import OCR_LANG, OCR_USE_GPU
+
+logger = logging.getLogger(__name__)
 
 # グローバルOCRインスタンス（起動時にロード）
 _ocr_instance: Optional[PaddleOCR] = None
@@ -13,12 +16,14 @@ def init_ocr():
     """OCRエンジンを初期化（起動時に呼び出し）"""
     global _ocr_instance
     if _ocr_instance is None:
+        logger.info(f"Initializing PaddleOCR: lang={OCR_LANG}, use_gpu={OCR_USE_GPU}")
         _ocr_instance = PaddleOCR(
             use_angle_cls=True,
             lang=OCR_LANG,
             show_log=False,
             use_gpu=OCR_USE_GPU,
         )
+        logger.info("PaddleOCR initialized successfully")
     return _ocr_instance
 
 
@@ -44,15 +49,18 @@ def run_ocr(image: Image.Image) -> tuple[str, list[dict], float]:
         blocks: 各ブロックの情報 [{text, bbox, score}]
         confidence: 全体の信頼度スコア
     """
+    logger.info(f"Starting OCR: image size={image.size}")
     ocr = get_ocr()
 
     # PIL ImageをNumPy配列に変換
     img_array = np.array(image)
 
     # OCR実行
+    logger.info("Running PaddleOCR...")
     result = ocr.ocr(img_array, cls=True)
 
     if not result or not result[0]:
+        logger.warning("OCR returned no results")
         return "", [], 0.0
 
     # ブロック情報を抽出
@@ -92,6 +100,9 @@ def run_ocr(image: Image.Image) -> tuple[str, list[dict], float]:
         {"text": b["text"], "bbox": b["bbox"], "score": b["score"]}
         for b in blocks
     ]
+
+    logger.info(f"OCR completed: {len(blocks)} blocks, confidence={confidence:.2f}")
+    logger.debug(f"OCR text preview: {raw_text[:200]}...")
 
     return raw_text, output_blocks, confidence
 

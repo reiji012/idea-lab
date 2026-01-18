@@ -11,7 +11,7 @@ services:
     depends_on:
       - ocr-backend
 
-  # OCRバックエンド (FastAPI + PaddleOCR)
+  # OCRバックエンド (FastAPI + PaddleOCR) - GPU対応
   ocr-backend:
     build:
       context: ./ocr-backend
@@ -22,10 +22,20 @@ services:
       - API_TOKEN=${API_TOKEN:-dev-token}
       - OLLAMA_BASE_URL=http://host.docker.internal:11434
       - OLLAMA_MODEL=${OLLAMA_MODEL:-llama3.2}
+      - NVIDIA_VISIBLE_DEVICES=all
     volumes:
       - ocr-data:/app/data
+      - ./ocr-backend/app:/app/app # ホットリロード用
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [ gpu ]
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    command: [ "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload" ]
 
 volumes:
   ocr-data:

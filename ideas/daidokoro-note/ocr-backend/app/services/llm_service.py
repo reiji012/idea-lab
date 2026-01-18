@@ -1,8 +1,11 @@
 import json
+import logging
 import httpx
 from typing import Optional
 
 from app.config import OLLAMA_BASE_URL, OLLAMA_MODEL, LLM_TIMEOUT
+
+logger = logging.getLogger(__name__)
 
 # JSON出力スキーマのプロンプト
 SYSTEM_PROMPT = """あなたは料理レシピを構造化するアシスタントです。
@@ -58,8 +61,12 @@ async def structure_recipe(
     warnings = []
 
     if not raw_text.strip():
+        logger.warning("OCR text is empty")
         warnings.append("OCR_TEXT_EMPTY")
         return None, warnings
+
+    logger.info(f"Starting LLM structuring with model: {OLLAMA_MODEL}")
+    logger.debug(f"OCR text length: {len(raw_text)} chars")
 
     # プロンプト構築
     user_content = f"以下のOCRテキストからレシピ情報を抽出してください:\n\n{raw_text}"
@@ -70,6 +77,7 @@ async def structure_recipe(
         user_content += f"\n\nタイトルヒント: {title_hint}"
 
     try:
+        logger.info(f"Sending request to Ollama: {OLLAMA_BASE_URL}/api/generate")
         async with httpx.AsyncClient(timeout=float(LLM_TIMEOUT)) as client:
             response = await client.post(
                 f"{OLLAMA_BASE_URL}/api/generate",
@@ -84,32 +92,42 @@ async def structure_recipe(
             )
 
             if response.status_code != 200:
+                error_body = response.text
+                logger.error(f"LLM request failed: status={response.status_code}, body={error_body}")
                 warnings.append(f"LLM_REQUEST_FAILED: {response.status_code}")
                 return None, warnings
 
             result = response.json()
             llm_output = result.get("response", "")
+            logger.info(f"LLM response received: {len(llm_output)} chars")
+            logger.debug(f"LLM raw output: {llm_output[:500]}...")
 
             # JSONをパース
             structured = parse_llm_response(llm_output)
 
             if structured is None:
+                logger.error(f"Failed to parse LLM response as JSON: {llm_output[:200]}...")
                 warnings.append("LLM_PARSE_FAILED")
                 return None, warnings
+
+            logger.info(f"Successfully parsed recipe: {structured.get('title', 'unknown')}")
 
             # raw_text_usedを追加
             structured["raw_text_used"] = raw_text
 
             # 検証
             if not structured.get("ingredients") and not structured.get("steps"):
+                logger.warning("Parsed result has no ingredients or steps - may not be a recipe")
                 warnings.append("NOT_A_RECIPE")
 
             return structured, warnings
 
     except httpx.TimeoutException:
+        logger.error(f"LLM request timed out after {LLM_TIMEOUT}s")
         warnings.append("LLM_TIMEOUT")
         return None, warnings
     except Exception as e:
+        logger.exception(f"LLM error: {str(e)}")
         warnings.append(f"LLM_ERROR: {str(e)}")
         return None, warnings
 

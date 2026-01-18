@@ -34,7 +34,7 @@ export interface OcrError {
 }
 
 // const OCR_API_URL = process.env.NEXT_PUBLIC_OCR_API_URL || 'http://localhost:8000';
-const OCR_API_URL = 'http://192.168.11.23:8000';
+const OCR_API_URL = 'http://192.168.11.27:8000';
 const OCR_API_TOKEN = process.env.NEXT_PUBLIC_OCR_API_TOKEN || 'dev-token';
 
 export async function extractRecipeFromImage(
