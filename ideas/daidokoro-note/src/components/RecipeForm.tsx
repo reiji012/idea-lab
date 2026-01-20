@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { Recipe, RecipeCategory, RecipeSource, CATEGORY_LABELS } from '@/types';
 import { Button } from './Button';
 import { ImageUpload } from './ImageUpload';
 import {
-  extractRecipeFromImage,
+  extractRecipeFromImages,
   formatIngredientsForForm,
   formatStepsForForm,
 } from '@/lib/ocr-api';
@@ -46,15 +46,33 @@ export function RecipeForm({
   // OCR関連のstate
   const [isOcrLoading, setIsOcrLoading] = useState(false);
   const [ocrError, setOcrError] = useState<string | null>(null);
-  const ocrFileInputRef = useRef<HTMLInputElement>(null);
 
-  // OCRで画像からレシピを取り込む
-  const handleOcrImport = async (file: File) => {
+  // 全てのアップロード済み画像から一括OCR実行
+  const handleOcrAllImages = async () => {
+    if (images.length === 0) return;
+
     setIsOcrLoading(true);
     setOcrError(null);
 
     try {
-      const result = await extractRecipeFromImage(file, {
+      // Data URLをFileオブジェクトに変換
+      const files: File[] = [];
+      for (let i = 0; i < images.length; i++) {
+        const imageUrl = images[i];
+        const response = await fetch(imageUrl);
+        const blob = await response.blob();
+        const mimeType = blob.type || 'image/jpeg';
+        const extension = mimeType === 'image/png'
+          ? 'png'
+          : mimeType === 'image/webp'
+            ? 'webp'
+            : 'jpg';
+        const file = new File([blob], `image-${i}.${extension}`, { type: mimeType });
+        files.push(file);
+      }
+
+      // バッチAPIで一括処理
+      const result = await extractRecipeFromImages(files, {
         sourceUrl: sourceUrl || undefined,
         titleHint: title || undefined,
       });
@@ -76,10 +94,10 @@ export function RecipeForm({
           const formatted = formatStepsForForm(recipe.steps);
           setStepsText((prev) => prev ? `${prev}\n${formatted}` : formatted);
         }
-      } else if (result.raw_ocr_text) {
+      } else if (result.combined_raw_text) {
         // 構造化できなかった場合は生テキストを材料欄に追加
         setIngredientsText((prev) =>
-          prev ? `${prev}\n\n--- OCR結果 ---\n${result.raw_ocr_text}` : result.raw_ocr_text
+          prev ? `${prev}\n\n--- OCR結果 ---\n${result.combined_raw_text}` : result.combined_raw_text
         );
       }
 
@@ -92,15 +110,6 @@ export function RecipeForm({
     } finally {
       setIsOcrLoading(false);
     }
-  };
-
-  const handleOcrFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      handleOcrImport(file);
-    }
-    // 同じファイルを再選択できるようにリセット
-    e.target.value = '';
   };
 
   const handleMethodSelect = (selectedMethod: RegistrationMethod) => {
@@ -199,7 +208,11 @@ export function RecipeForm({
 
       <div>
         <label className="block text-sm font-medium mb-1">画像</label>
-        <ImageUpload images={images} onChange={setImages} maxImages={4} />
+        <ImageUpload
+          images={images}
+          onChange={setImages}
+          maxImages={4}
+        />
       </div>
 
       <div>
@@ -236,23 +249,20 @@ export function RecipeForm({
           <label className="block text-sm font-medium">
             材料 <span className="text-red-500">*</span>
           </label>
-          <div>
-            <input
-              type="file"
-              ref={ocrFileInputRef}
-              onChange={handleOcrFileSelect}
-              accept="image/jpeg,image/png,image/gif,image/webp,image/bmp"
-              className="hidden"
-            />
+          {images.length > 0 ? (
             <button
               type="button"
-              onClick={() => ocrFileInputRef.current?.click()}
+              onClick={handleOcrAllImages}
               disabled={isOcrLoading}
-              className="text-xs px-2 py-1 bg-secondary text-secondary-foreground rounded hover:bg-secondary/80 transition-colors disabled:opacity-50"
+              className="text-xs px-3 py-1.5 bg-primary text-white rounded hover:bg-primary-dark transition-colors disabled:opacity-50"
             >
-              {isOcrLoading ? '読み取り中...' : '画像から取り込む'}
+              {isOcrLoading ? '読み取り中...' : `画像から取り込む（${images.length}枚）`}
             </button>
-          </div>
+          ) : (
+            <p className="text-xs text-muted">
+              ※ 画像をアップロードするとOCRで自動入力できます
+            </p>
+          )}
         </div>
         {ocrError && (
           <div className="mb-2 p-2 text-xs bg-red-50 text-red-600 rounded border border-red-200">

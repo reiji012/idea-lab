@@ -29,12 +29,22 @@ export interface OcrResponse {
   warnings: string[];
 }
 
+export interface BatchOcrResponse {
+  recipe_id: string;
+  raw_ocr_texts: string[];
+  combined_raw_text: string;
+  structured_recipe?: StructuredRecipe;
+  average_confidence?: number;
+  warnings: string[];
+  processed_count: number;
+}
+
 export interface OcrError {
   detail: string;
 }
 
 // const OCR_API_URL = process.env.NEXT_PUBLIC_OCR_API_URL || 'http://localhost:8000';
-const OCR_API_URL = 'http://192.168.11.27:8000';
+const OCR_API_URL = 'http://192.168.11.23:8000';
 const OCR_API_TOKEN = process.env.NEXT_PUBLIC_OCR_API_TOKEN || 'dev-token';
 
 export async function extractRecipeFromImage(
@@ -55,6 +65,44 @@ export async function extractRecipeFromImage(
   }
 
   const response = await fetch(`${OCR_API_URL}/v1/recipes/ingest`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${OCR_API_TOKEN}`,
+    },
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const error: OcrError = await response.json();
+    throw new Error(error.detail || `OCR API error: ${response.status}`);
+  }
+
+  return response.json();
+}
+
+// 複数画像を一括でOCR処理
+export async function extractRecipeFromImages(
+  files: File[],
+  options?: {
+    sourceUrl?: string;
+    titleHint?: string;
+  }
+): Promise<BatchOcrResponse> {
+  const formData = new FormData();
+
+  // 複数画像を追加
+  files.forEach((file) => {
+    formData.append('images', file);
+  });
+
+  if (options?.sourceUrl) {
+    formData.append('source_url', options.sourceUrl);
+  }
+  if (options?.titleHint) {
+    formData.append('title_hint', options.titleHint);
+  }
+
+  const response = await fetch(`${OCR_API_URL}/v1/recipes/ingest/batch`, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${OCR_API_TOKEN}`,

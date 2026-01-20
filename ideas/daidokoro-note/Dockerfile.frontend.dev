@@ -1,0 +1,14 @@
+# 開発用Dockerfile
+FROM node:20-alpine
+
+WORKDIR /app
+
+# 依存関係のみ先にコピー（キャッシュ効率化）
+COPY package.json package-lock.json* ./
+RUN npm ci
+
+# ソースコードはボリュームマウントで提供
+
+EXPOSE 3000
+
+CMD ["npm", "run", "dev"]

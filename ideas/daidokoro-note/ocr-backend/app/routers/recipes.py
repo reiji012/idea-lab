@@ -1,7 +1,7 @@
 import asyncio
 import logging
 from fastapi import APIRouter, File, Form, UploadFile, HTTPException, Depends
-from typing import Optional
+from typing import Optional, List
 import ulid
 
 from app.config import MAX_UPLOAD_BYTES, ALLOWED_EXTENSIONS, ALLOWED_MIMETYPES, OLLAMA_MODEL
@@ -26,7 +26,6 @@ async def ingest_recipe(
     image: UploadFile = File(...),
     source_url: Optional[str] = Form(None),
     title_hint: Optional[str] = Form(None),
-    lang: str = Form("ja"),
     _: str = Depends(verify_token),
 ):
     """
@@ -132,6 +131,118 @@ async def ingest_recipe(
             structured_recipe=structured_recipe,
             confidence=confidence,
             warnings=warnings,
+        )
+
+
+@router.post("/ingest/batch", response_model=BatchIngestResponse)
+async def ingest_recipe_batch(
+    images: List[UploadFile] = File(...),
+    source_url: Optional[str] = Form(None),
+    title_hint: Optional[str] = Form(None),
+    _: str = Depends(verify_token),
+):
+    """
+    複数画像を受け取り、全てOCR→テキスト結合→構造化→保存まで実行し、結果を返す
+    """
+    if not images:
+        raise HTTPException(status_code=400, detail="No images provided")
+
+    if len(images) > 4:
+        raise HTTPException(status_code=400, detail="Maximum 4 images allowed")
+
+    warnings = []
+    raw_texts = []
+    confidences = []
+    image_paths = []
+
+    # セマフォで直列化（CPU保護）
+    async with _semaphore:
+        recipe_id = str(ulid.new())
+
+        # 各画像を処理
+        for i, image in enumerate(images):
+            # ファイル検証
+            if image.content_type not in ALLOWED_MIMETYPES:
+                warnings.append(f"IMAGE_{i}_SKIPPED: Unsupported file type")
+                continue
+
+            ext = "." + image.filename.split(".")[-1].lower() if "." in image.filename else ""
+            if ext not in ALLOWED_EXTENSIONS:
+                warnings.append(f"IMAGE_{i}_SKIPPED: Unsupported extension")
+                continue
+
+            contents = await image.read()
+            if len(contents) > MAX_UPLOAD_BYTES:
+                warnings.append(f"IMAGE_{i}_SKIPPED: File too large")
+                continue
+
+            # 画像前処理
+            try:
+                processed_image = process_image(contents)
+            except Exception as e:
+                warnings.append(f"IMAGE_{i}_PROCESSING_ERROR: {str(e)}")
+                continue
+
+            # 画像保存
+            img_path = save_image(processed_image, f"{recipe_id}_{i}")
+            image_paths.append(img_path)
+
+            # OCR実行
+            try:
+                raw_text, ocr_blocks, confidence = run_ocr(processed_image)
+                if raw_text:
+                    raw_texts.append(raw_text)
+                    confidences.append(confidence)
+                else:
+                    warnings.append(f"IMAGE_{i}_OCR_EMPTY")
+            except Exception as e:
+                warnings.append(f"IMAGE_{i}_OCR_ERROR: {str(e)}")
+
+        if not raw_texts:
+            raise HTTPException(status_code=400, detail="No text could be extracted from any image")
+
+        # 全テキストを結合
+        combined_text = "\n\n---\n\n".join(raw_texts)
+        avg_confidence = sum(confidences) / len(confidences) if confidences else 0.0
+
+        # LLM構造化（結合テキストを使用）
+        structured_dict = None
+        structured_dict, llm_warnings = await structure_recipe(
+            combined_text,
+            source_url=source_url,
+            title_hint=title_hint,
+        )
+        warnings.extend(llm_warnings)
+
+        # DB保存
+        save_recipe(
+            recipe_id=recipe_id,
+            image_path=image_paths[0] if image_paths else "",
+            ocr_raw_text=combined_text,
+            ocr_blocks=[],
+            structured_json=structured_dict,
+            confidence=avg_confidence,
+            warnings=warnings,
+            source_url=source_url,
+            llm_model=OLLAMA_MODEL if structured_dict else None,
+        )
+
+        # レスポンス構築
+        structured_recipe = None
+        if structured_dict:
+            try:
+                structured_recipe = StructuredRecipe(**structured_dict)
+            except Exception:
+                warnings.append("SCHEMA_VALIDATION_FAILED")
+
+        return BatchIngestResponse(
+            recipe_id=recipe_id,
+            raw_ocr_texts=raw_texts,
+            combined_raw_text=combined_text,
+            structured_recipe=structured_recipe,
+            average_confidence=avg_confidence,
+            warnings=warnings,
+            processed_count=len(raw_texts),
         )
 
 

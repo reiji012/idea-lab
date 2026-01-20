@@ -1,13 +1,17 @@
 services:
-  # フロントエンド (Next.js)
+  # フロントエンド (Next.js) - 開発モード
   frontend:
     build:
       context: .
-      dockerfile: Dockerfile.frontend
+      dockerfile: Dockerfile.frontend.dev
     ports:
       - "3002:3000"
     environment:
       - NEXT_PUBLIC_OCR_API_URL=http://localhost:8000
+      - WATCHPACK_POLLING=true
+    volumes:
+      - ./src:/app/src
+      - ./public:/app/public
     depends_on:
       - ocr-backend
 

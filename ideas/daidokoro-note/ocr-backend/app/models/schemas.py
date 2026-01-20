@@ -1,5 +1,5 @@
 from typing import Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class Ingredient(BaseModel):
@@ -21,11 +21,11 @@ class Source(BaseModel):
 class StructuredRecipe(BaseModel):
     title: Optional[str] = None
     servings: Optional[str] = None
-    ingredients: list[Ingredient] = []
-    steps: list[Step] = []
+    ingredients: list[Ingredient] = Field(default_factory=list)
+    steps: list[Step] = Field(default_factory=list)
     time: Optional[str] = None
-    notes: list[str] = []
-    tags: list[str] = []
+    notes: list[str] = Field(default_factory=list)
+    tags: list[str] = Field(default_factory=list)
     source: Optional[Source] = None
     raw_text_used: str
 
@@ -35,7 +35,18 @@ class IngestResponse(BaseModel):
     raw_ocr_text: str
     structured_recipe: Optional[StructuredRecipe] = None
     confidence: Optional[float] = None
-    warnings: list[str] = []
+    warnings: list[str] = Field(default_factory=list)
+
+
+class BatchIngestResponse(BaseModel):
+    """複数画像一括処理のレスポンス"""
+    recipe_id: str
+    raw_ocr_texts: list[str] = Field(default_factory=list)
+    combined_raw_text: str
+    structured_recipe: Optional[StructuredRecipe] = None
+    average_confidence: Optional[float] = None
+    warnings: list[str] = Field(default_factory=list)
+    processed_count: int
 
 
 class RecipeResponse(BaseModel):
@@ -46,7 +57,7 @@ class RecipeResponse(BaseModel):
     ocr_raw_text: str
     structured_recipe: Optional[StructuredRecipe] = None
     confidence: Optional[float] = None
-    warnings: list[str] = []
+    warnings: list[str] = Field(default_factory=list)
 
 
 class HealthResponse(BaseModel):

@@ -8,7 +8,11 @@ interface ImageUploadProps {
   maxImages?: number;
 }
 
-export function ImageUpload({ images, onChange, maxImages = 4 }: ImageUploadProps) {
+export function ImageUpload({
+  images,
+  onChange,
+  maxImages = 4,
+}: ImageUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
